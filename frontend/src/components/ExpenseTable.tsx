@@ -7,7 +7,7 @@ import { fetchExpenses } from '../api/expenses'
 import { getErrorMessage } from '../api/client'
 import type { Expense, ExpenseFilters } from '../types'
 import { formatCurrency } from '../utils/format'
-import { CATEGORY_LABELS } from '../constants'
+import { getCategoryColor, getCategoryLabel } from '../constants'
 
 const { RangePicker } = DatePicker
 
@@ -30,7 +30,11 @@ export default function ExpenseTable({ categories, members, currency, refreshSig
   const [items, setItems] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const filteredTotal = items.reduce((sum, item) => sum + item.amount, 0)
 
+  const averageExpense = items.length
+    ? filteredTotal / items.length
+    : 0
   // Debounce the free-text search so we don't hit the API on every keystroke.
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 350)
@@ -83,7 +87,11 @@ export default function ExpenseTable({ categories, members, currency, refreshSig
         dataIndex: 'category',
         key: 'category',
         width: 180,
-        render: (value: string | null) => <Tag>{value ? CATEGORY_LABELS[value] ?? value : 'Uncategorized'}</Tag>,
+       render: (value: string | null) => (
+          <Tag color={getCategoryColor(value)}>
+            {getCategoryLabel(value)}
+          </Tag>
+        ),
       },
       {
         title: 'Payer',
@@ -130,7 +138,10 @@ export default function ExpenseTable({ categories, members, currency, refreshSig
           style={{ width: 190 }}
           value={category}
           onChange={setCategory}
-          options={categories.map((c) => ({ value: c, label: CATEGORY_LABELS[c] ?? c }))}
+          options={categories.map((c) => ({
+            value: c,
+            label: getCategoryLabel(c),
+          }))}
         />
         <Select
           allowClear
@@ -170,6 +181,25 @@ export default function ExpenseTable({ categories, members, currency, refreshSig
         }}
         scroll={{ x: 700 }}
       />
+      {!loading && items.length > 0 && (
+        <div className="expense-table-summary">
+          <div>
+            <span>Showing</span>
+            <strong>{items.length}</strong>
+            <span>expenses</span>
+          </div>
+
+          <div>
+            <span>Average</span>
+            <strong>{formatCurrency(averageExpense, currency)}</strong>
+          </div>
+
+          <div>
+            <span>Total spending</span>
+            <strong>{formatCurrency(filteredTotal, currency)}</strong>
+          </div>
+        </div>
+      )}
     </Card>
   )
 }
