@@ -18,7 +18,7 @@ export default function CategoryChart({ data, currency }: CategoryChartProps) {
         <ResponsiveContainer width="100%" height={280}>
           <PieChart>
             <Pie data={data} dataKey="amount" nameKey="category" innerRadius={60} outerRadius={95} paddingAngle={2}>
-              {data.map((entry, index) => (
+              {data.map((entry) => (
                 <Cell key={entry.category} fill={getCategoryColor(entry.category)} />
               ))}
             </Pie>
