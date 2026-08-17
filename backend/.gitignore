@@ -1,0 +1,14 @@
+# Secrets
+.env
+
+# tricount-api auto-generates and persists device credentials here on first
+# run — treat it like a secret, it re-authenticates as your device.
+tricount_credentials.json
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
