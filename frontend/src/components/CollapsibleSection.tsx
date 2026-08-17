@@ -25,7 +25,7 @@ export default function CollapsibleSection({
           key: 'section',
           label: (
             <span className="collapsible-section-title">
-              {icon}
+              {icon} {' '}
               <span>{title}</span>
             </span>
           ),

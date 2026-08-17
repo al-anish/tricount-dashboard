@@ -7,7 +7,10 @@ import {
   TeamOutlined,
   ThunderboltOutlined,
   WalletOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  BulbOutlined,
+  CalendarOutlined,
+  AlertOutlined
 } from '@ant-design/icons'
 import { Alert, Button, Empty, Skeleton, Space, Tag, Typography } from 'antd'
 import { fetchTricount } from './api/tricount'
@@ -26,6 +29,9 @@ import BalanceCard from './components/BalanceCard'
 
 import CollapsibleSection from './components/CollapsibleSection'
 import SpendingInsights from './components/SpendingInsights'
+import SavingsCommandCenter from './components/SavingsCommandCenter'
+import WeekdaySpending from './components/WeekdaySpending'
+import SpendingLeakDetector from './components/SpendingLeakDetector'
 
 const { Title, Text } = Typography
 
@@ -34,6 +40,7 @@ export default function App() {
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [balances, setBalances] = useState<Balances | null>(null)
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([])
+  const [expenses, setExpenses] = useState<Expense[]>([])
 
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -52,6 +59,7 @@ export default function App() {
       setTricount(tricountData)
       setDashboard(dashboardData)
       setBalances(balancesData)
+      setExpenses(expensesData.items)
       setRecentExpenses(expensesData.items.slice(0, 10))
     } catch (err) {
       setError(getErrorMessage(err))
@@ -139,6 +147,18 @@ export default function App() {
     </CollapsibleSection>
 
     <CollapsibleSection
+      title="Savings Command Center"
+      icon={<BulbOutlined />}
+      defaultOpen
+    >
+      <SavingsCommandCenter
+        dashboard={dashboard}
+        expenses={expenses}
+        currency={tricount.currency}
+      />
+    </CollapsibleSection>
+
+    <CollapsibleSection
       title="Spending insights"
       icon={<ThunderboltOutlined />}
       defaultOpen
@@ -218,12 +238,31 @@ export default function App() {
         currency={tricount.currency}
       />
     </CollapsibleSection>
+
+    <CollapsibleSection
+  title="Spending by day of week"
+  icon={<CalendarOutlined />}
+  defaultOpen={false}
+>
+  <WeekdaySpending
+    expenses={expenses}
+    currency={tricount.currency}
+  />
+</CollapsibleSection>
   </>
 )}
 
-      <div className="dashboard-section">
-        <BalanceCard balances={balances.balances} currency={tricount.currency} />
-      </div>
+<CollapsibleSection
+  title="Spending Leak Detector"
+  icon={<AlertOutlined />}
+  defaultOpen={false}
+>
+  <SpendingLeakDetector
+    expenses={expenses}
+    currency={tricount.currency}
+  />
+</CollapsibleSection>
+ 
     </div>
   )
 }

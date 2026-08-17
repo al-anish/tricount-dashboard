@@ -184,18 +184,18 @@ export default function ExpenseTable({ categories, members, currency, refreshSig
       {!loading && items.length > 0 && (
         <div className="expense-table-summary">
           <div>
-            <span>Showing</span>
+            <span>Showing {' '}</span>
             <strong>{items.length}</strong>
-            <span>expenses</span>
+            <span>{' '}expenses</span>
           </div>
 
           <div>
-            <span>Average</span>
+            <span>Average{' '}</span>
             <strong>{formatCurrency(averageExpense, currency)}</strong>
           </div>
 
           <div>
-            <span>Total spending</span>
+            <span>Total spending{' '}</span>
             <strong>{formatCurrency(filteredTotal, currency)}</strong>
           </div>
         </div>
