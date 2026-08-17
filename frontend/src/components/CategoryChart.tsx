@@ -2,7 +2,7 @@ import { Card, Empty } from 'antd'
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import type { CategorySpending } from '../types'
 import { formatCurrency } from '../utils/format'
-import { CATEGORY_LABELS, CHART_COLORS } from '../constants'
+import { getCategoryColor, getCategoryLabel } from '../constants'
 
 interface CategoryChartProps {
   data: CategorySpending[]
@@ -19,11 +19,11 @@ export default function CategoryChart({ data, currency }: CategoryChartProps) {
           <PieChart>
             <Pie data={data} dataKey="amount" nameKey="category" innerRadius={60} outerRadius={95} paddingAngle={2}>
               {data.map((entry, index) => (
-                <Cell key={entry.category} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                <Cell key={entry.category} fill={getCategoryColor(entry.category)} />
               ))}
             </Pie>
             <Tooltip formatter={(value: number) => formatCurrency(value, currency)} />
-            <Legend formatter={(value: string) => CATEGORY_LABELS[value] ?? value} wrapperStyle={{ fontSize: 12 }} />
+            <Legend formatter={(value: string) => getCategoryLabel(value)}wrapperStyle={{ fontSize: 12 }} />
           </PieChart>
         </ResponsiveContainer>
       )}

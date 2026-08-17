@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
+import {
+  BarChartOutlined,
+  CreditCardOutlined,
+  FileTextOutlined,
+  PieChartOutlined,
+  TeamOutlined,
+  ThunderboltOutlined,
+  WalletOutlined,
+  ReloadOutlined
+} from '@ant-design/icons'
 import { Alert, Button, Empty, Skeleton, Space, Tag, Typography } from 'antd'
-import { ReloadOutlined } from '@ant-design/icons'
 import { fetchTricount } from './api/tricount'
 import { fetchDashboard } from './api/dashboard'
 import { fetchBalances } from './api/balances'
@@ -14,6 +23,9 @@ import MemberSpendingChart from './components/MemberSpendingChart'
 import RecentExpenses from './components/RecentExpenses'
 import ExpenseTable from './components/ExpenseTable'
 import BalanceCard from './components/BalanceCard'
+
+import CollapsibleSection from './components/CollapsibleSection'
+import SpendingInsights from './components/SpendingInsights'
 
 const { Title, Text } = Typography
 
@@ -109,29 +121,105 @@ export default function App() {
       </div>
 
       {dashboard.expense_count === 0 ? (
-        <Empty className="dashboard-section" description="No expenses found in this Tricount yet." />
-      ) : (
-        <>
-          <SummaryCards dashboard={dashboard} currency={tricount.currency} />
+  <Empty
+    className="dashboard-section"
+    description="No expenses found in this Tricount yet."
+  />
+) : (
+  <>
+    <CollapsibleSection
+      title="Overview"
+      icon={<WalletOutlined />}
+      defaultOpen
+    >
+      <SummaryCards
+        dashboard={dashboard}
+        currency={tricount.currency}
+      />
+    </CollapsibleSection>
 
-          <div className="dashboard-section">
-            <SpendingChart data={dashboard.daily_spending} currency={tricount.currency} />
-          </div>
+    <CollapsibleSection
+      title="Spending insights"
+      icon={<ThunderboltOutlined />}
+      defaultOpen
+    >
+      <SpendingInsights
+        dashboard={dashboard}
+        currency={tricount.currency}
+      />
+    </CollapsibleSection>
 
-          <div className="dashboard-section chart-grid">
-            <CategoryChart data={dashboard.categories} currency={tricount.currency} />
-            <MemberSpendingChart data={dashboard.member_spending} currency={tricount.currency} />
-          </div>
+    <CollapsibleSection
+      title="Spending trend"
+      icon={<BarChartOutlined />}
+      defaultOpen
+    >
+      <SpendingChart
+        data={dashboard.daily_spending}
+        currency={tricount.currency}
+      />
+    </CollapsibleSection>
 
-          <div className="dashboard-section">
-            <RecentExpenses expenses={recentExpenses} currency={tricount.currency} />
-          </div>
+    <div className="dashboard-section chart-grid">
+      <CollapsibleSection
+        title="Spending by category"
+        icon={<PieChartOutlined />}
+        defaultOpen
+      >
+        <CategoryChart
+          data={dashboard.categories}
+          currency={tricount.currency}
+        />
+      </CollapsibleSection>
 
-          <div className="dashboard-section">
-            <ExpenseTable categories={categories} members={memberNames} currency={tricount.currency} refreshSignal={refreshSignal} />
-          </div>
-        </>
-      )}
+      <CollapsibleSection
+        title="Spending by member"
+        icon={<TeamOutlined />}
+        defaultOpen
+      >
+        <MemberSpendingChart
+          data={dashboard.member_spending}
+          currency={tricount.currency}
+        />
+      </CollapsibleSection>
+    </div>
+
+    <CollapsibleSection
+      title="Recent expenses"
+      icon={<FileTextOutlined />}
+      defaultOpen
+    >
+      <RecentExpenses
+        expenses={recentExpenses}
+        currency={tricount.currency}
+      />
+    </CollapsibleSection>
+
+    <CollapsibleSection
+      title="All expenses"
+      icon={<FileTextOutlined />}
+      defaultOpen
+    >
+      <ExpenseTable
+        categories={categories}
+        members={memberNames}
+        currency={tricount.currency}
+        refreshSignal={refreshSignal}
+      />
+    </CollapsibleSection>
+
+    <CollapsibleSection
+      title="Balances"
+      icon={<CreditCardOutlined />}
+      defaultOpen
+    >
+      <BalanceCard
+        balances={balances.balances}
+        currency={tricount.currency}
+      />
+    </CollapsibleSection>
+  </>
+)}
 
       <div className="dashboard-section">
         <BalanceCard balances={balances.balances} currency={tricount.currency} />
