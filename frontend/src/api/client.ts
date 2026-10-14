@@ -16,5 +16,7 @@ export function getErrorMessage(error: unknown): string {
     if (error.response?.status) return `Request failed (${error.response.status}).`
     return `Could not reach the backend at ${baseURL}. Is it running?`
   }
+  if (error instanceof Error) return error.message
   return 'Something went wrong.'
 }
+

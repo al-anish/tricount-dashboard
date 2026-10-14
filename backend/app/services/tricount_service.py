@@ -24,13 +24,13 @@ re-triggers these same calls.
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, time as datetime_time
 from functools import lru_cache
 import time
 from threading import Lock
 from typing import Optional
 
-from tricount import load_client
+from tricount import load_client, Category, TransactionType
 
 from app.config import get_settings
 
@@ -52,7 +52,7 @@ class TricountServiceError(Exception):
 
 
 class TricountService:
-    """Thin, read-only wrapper around the `tricount-api` client."""
+    """Normalized wrapper around the `tricount-api` client."""
 
     def __init__(self) -> None:
         self._client = None
@@ -145,7 +145,107 @@ class TricountService:
             "category": category,
         }
 
-    # -- public read-only API -------------------------------------------
+
+    def _fresh_tricount(self):
+        """Bypass the short read cache before/after a mutation."""
+        self._tricount_cache = None
+        self._tricount_cache_time = 0.0
+        return self._fetch_tricount()
+
+    def _member(self, tricount, member_uuid: str):
+        member = next((m for m in tricount.members if m.uuid == member_uuid), None)
+        if member is None:
+            raise ValueError("Invalid member ID.")
+        return member
+
+    def create_expense(self, payload: dict) -> dict:
+        tricount = self._fresh_tricount()
+        payer = self._member(tricount, payload["payer_uuid"])
+        splits = payload["split_member_uuids"]
+        if not splits or len(set(splits)) != len(splits):
+            raise ValueError("Select one or more unique members to split the expense.")
+        split_members = [self._member(tricount, uid) for uid in splits]
+        try:
+            category = Category(payload["category"]) if payload.get("category") else None
+            created_id = self._get_client().create_transaction(
+                tricount, description=payload["description"].strip(),
+                amount=float(payload["amount"]), payer=payer,
+                split_among=split_members, category=category,
+                date=datetime.combine(datetime.fromisoformat(payload["date"]).date(), datetime_time.min),
+                transaction_type=TransactionType.NORMAL,
+            )
+        except ValueError:
+            raise
+        except Exception as exc:
+            self._invalidate_cache()
+            logger.error("Tricount create failed: %s", type(exc).__name__)
+            raise TricountServiceError("Tricount rejected the expense creation.") from exc
+        self._invalidate_cache()
+        refreshed = self._fresh_tricount()
+        tx = next((x for x in refreshed.transactions if x.id == created_id), None)
+        if tx is None or self._transaction_type_value(tx) != EXPENSE_TRANSACTION_TYPE:
+            raise TricountServiceError("Tricount accepted the request but the created expense could not be verified.")
+        return self._normalize_transaction(refreshed, tx)
+
+    def update_expense(self, expense_id: int, payload: dict) -> dict:
+        tricount = self._fresh_tricount()
+        tx = next((x for x in tricount.transactions if x.id == expense_id), None)
+        if tx is None or self._transaction_type_value(tx) != EXPENSE_TRANSACTION_TYPE:
+            raise LookupError("Expense not found.")
+        if payload.get("payer_uuid") or payload.get("split_member_uuids"):
+            raise ValueError("Payer and split allocations are preserved and cannot be edited.")
+        try:
+            category = Category(payload["category"]) if payload.get("category") else None
+            self._get_client().edit_transaction(
+                tricount, transaction_id=expense_id,
+                description=payload.get("description"),
+                amount=-float(payload["amount"]) if payload.get("amount") is not None else None,
+                category=category,
+                date=datetime.combine(datetime.fromisoformat(payload["date"]).date(), datetime_time.min) if payload.get("date") else None,
+            )
+        except ValueError:
+            raise
+        except Exception as exc:
+            self._invalidate_cache()
+            logger.error("Tricount update failed: %s", type(exc).__name__)
+            raise TricountServiceError("Tricount rejected the expense update.") from exc
+        self._invalidate_cache()
+        refreshed = self._fresh_tricount()
+        updated = next((x for x in refreshed.transactions if x.id == expense_id), None)
+        expected_description = payload.get("description", tx.description)
+        expected_amount = float(payload["amount"]) if payload.get("amount") is not None else abs(float(tx.amount.value))
+        expected_date = payload.get("date", self._normalize_date(tx.date))
+        expected_category = payload.get("category", getattr(tx, "category_custom", None) or getattr(tx, "category", None))
+        if (
+            updated is None
+            or updated.description != expected_description
+            or abs(abs(float(updated.amount.value)) - expected_amount) > 0.011
+            or self._normalize_date(updated.date) != expected_date
+            or (getattr(updated, "category_custom", None) or getattr(updated, "category", None)) != expected_category
+        ):
+            raise TricountServiceError("Tricount accepted the update but the requested changes could not be verified.")
+        return self._normalize_transaction(refreshed, updated)
+
+    def delete_expense(self, expense_id: int) -> None:
+        tricount = self._fresh_tricount()
+        tx = next((x for x in tricount.transactions if x.id == expense_id), None)
+        if tx is None or self._transaction_type_value(tx) != EXPENSE_TRANSACTION_TYPE:
+            raise LookupError("Expense not found.")
+        try:
+            self._get_client().delete_transaction(tricount, expense_id)
+        except Exception as exc:
+            logger.error("Tricount delete failed: %s", type(exc).__name__)
+            raise TricountServiceError("Tricount rejected the expense deletion.") from exc
+        self._invalidate_cache()
+        refreshed = self._fresh_tricount()
+        if any(x.id == expense_id for x in refreshed.transactions):
+            raise TricountServiceError("Tricount accepted the deletion request but the expense is still present.")
+
+    def _invalidate_cache(self):
+        self._tricount_cache = None
+        self._tricount_cache_time = 0.0
+
+    # -- public API ------------------------------------------------------
     def get_tricount_info(self) -> dict:
         tricount = self._fetch_tricount()
         members = [

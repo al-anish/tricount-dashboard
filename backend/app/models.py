@@ -83,3 +83,37 @@ class BalanceOut(BaseModel):
 class BalancesOut(BaseModel):
     currency: str
     balances: list[BalanceOut]
+
+
+from datetime import date as Date
+from pydantic import Field, field_validator
+
+
+class ExpenseCreateIn(BaseModel):
+    description: str = Field(min_length=1, max_length=200)
+    amount: float = Field(gt=0, allow_inf_nan=False)
+    date: Date
+    category: str
+    payer_uuid: str = Field(min_length=1)
+    split_member_uuids: list[str] = Field(min_length=1)
+
+    @field_validator("description")
+    @classmethod
+    def description_not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Description is required.")
+        return value.strip()
+
+
+class ExpenseUpdateIn(BaseModel):
+    description: str | None = Field(default=None, min_length=1, max_length=200)
+    amount: float | None = Field(default=None, gt=0, allow_inf_nan=False)
+    date: Date | None = None
+    category: str | None = None
+
+    @field_validator("description")
+    @classmethod
+    def description_not_blank(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
+            raise ValueError("Description is required.")
+        return value.strip() if value is not None else value
