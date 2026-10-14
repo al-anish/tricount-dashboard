@@ -107,7 +107,7 @@ export default function App() {
   }
 
   const categories = dashboard.categories.map((c) => c.category)
-  const memberNames = tricount.members.map((m) => m.name)
+
 
   return (
     <div className="dashboard-shell">
@@ -129,10 +129,15 @@ export default function App() {
       </div>
 
       {dashboard.expense_count === 0 ? (
-  <Empty
-    className="dashboard-section"
-    description="No expenses found in this Tricount yet."
-  />
+  <>
+    <Empty className="dashboard-section" description="No expenses found in this Tricount yet." />
+    <CollapsibleSection title="All expenses" icon={<FileTextOutlined />} defaultOpen>
+      <ExpenseTable categories={categories} members={tricount.members} currency={tricount.currency} refreshSignal={refreshSignal} onMutated={loadAll} />
+    </CollapsibleSection>
+    <CollapsibleSection title="Balances" icon={<CreditCardOutlined />} defaultOpen>
+      <BalanceCard balances={balances.balances} currency={tricount.currency} />
+    </CollapsibleSection>
+  </>
 ) : (
   <>
     <CollapsibleSection
@@ -222,9 +227,10 @@ export default function App() {
     >
       <ExpenseTable
         categories={categories}
-        members={memberNames}
+        members={tricount.members}
         currency={tricount.currency}
         refreshSignal={refreshSignal}
+        onMutated={loadAll}
       />
     </CollapsibleSection>
 
