@@ -65,9 +65,15 @@ class TricountService:
         if self._client is None:
             try:
                 self._client = load_client()
-            except Exception as exc:  # pragma: no cover - defensive
-                logger.error("Failed to initialize the tricount-api client: %s", type(exc).__name__)
-                raise TricountServiceError("Could not initialize the Tricount client.") from exc
+            except Exception as exc:
+                logger.exception("Tricount client initialization failed")
+
+                response = getattr(exc, "response", None)
+                if response is not None:
+                    logger.error("HTTP Status: %s", response.status_code)
+                    logger.error("HTTP Response Body: %s", response.text)
+
+                raise
         return self._client
 
     def _fetch_tricount(self):
